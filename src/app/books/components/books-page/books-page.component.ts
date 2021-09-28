@@ -2,7 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { BookModel, BookRequiredProps, calculateBooksGrossEarnings } from 'src/app/shared/models';
 import { BooksService } from 'src/app/shared/services';
 import { Store } from '@ngrx/store';
-import { BooksPageActions } from '../../actions/';
+import { BooksApiActions, BooksPageActions } from '../../actions/';
 import { State } from '../../../shared/state';
 
 @Component({
@@ -25,6 +25,7 @@ export class BooksPageComponent implements OnInit {
 
   getBooks() {
     this.booksService.all().subscribe(books => {
+      this.store.dispatch(BooksApiActions.booksLoaded({ books }));
       this.books = books;
       this.updateTotals(books);
     });
@@ -58,7 +59,8 @@ export class BooksPageComponent implements OnInit {
 
   saveBook(bookProps: BookRequiredProps) {
     this.store.dispatch(BooksPageActions.createBook({book: bookProps}))
-    this.booksService.create(bookProps).subscribe(() => {
+    this.booksService.create(bookProps).subscribe(book => {
+      this.store.dispatch(BooksApiActions.bookCreated({ book }));
       this.getBooks();
       this.removeSelectedBook();
     });
@@ -66,7 +68,8 @@ export class BooksPageComponent implements OnInit {
 
   updateBook(book: BookModel) {
     this.store.dispatch(BooksPageActions.updateBook({bookId: book.id, changes: book}));
-    this.booksService.update(book.id, book).subscribe(() => {
+    this.booksService.update(book.id, book).subscribe(book => {
+      this.store.dispatch(BooksApiActions.bookUpdated({ book }));
       this.getBooks();
       this.removeSelectedBook();
     });
@@ -75,6 +78,7 @@ export class BooksPageComponent implements OnInit {
   onDelete(book: BookModel) {
     this.store.dispatch(BooksPageActions.deleteBook({bookId: book.id}));
     this.booksService.delete(book.id).subscribe(() => {
+      this.store.dispatch(BooksApiActions.bookDeleted({ bookId: book.id }));
       this.getBooks();
       this.removeSelectedBook();
     });
