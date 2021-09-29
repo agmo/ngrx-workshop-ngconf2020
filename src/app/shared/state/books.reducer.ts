@@ -1,6 +1,6 @@
 import { Action, createReducer, on } from '@ngrx/store';
 import { BookModel } from 'src/app/shared/models';
-import { BooksPageActions } from 'src/app/books/actions';
+import { BooksPageActions, BooksApiActions } from 'src/app/books/actions';
 
 // These methods modify the state in an immutable way:
 const createBook = (books: BookModel[], book: BookModel) => [...books, book]; // Inserts a book into the collection in an immutable way. Using push() would mutate the previous state.
@@ -36,6 +36,32 @@ const booksReducer = createReducer(
     return {
       ...state,
       activeBookId: action.bookId
+    };
+  }),
+  on(BooksApiActions.booksLoaded, (state, action) => {
+    return {
+      ...state,
+      collection: action.books
+    };
+  }),
+  on(BooksApiActions.bookCreated, (state, action) => {
+    return {
+      ...state,
+      collection: createBook(state.collection, action.book),
+      activeBookId: null
+    };
+  }),
+  on(BooksApiActions.bookUpdated, (state, action) => {
+    return {
+      ...state,
+      collection: updateBook(state.collection, action.book),
+      activeBookId: null
+    };
+  }),
+  on(BooksApiActions.bookDeleted, (state, action) => {
+    return {
+      ...state,
+      collection: deleteBook(state.collection, action.bookId)
     };
   })
 );
