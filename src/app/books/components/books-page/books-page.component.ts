@@ -1,9 +1,10 @@
 import { Component, OnInit } from '@angular/core';
-import { BookModel, BookRequiredProps, calculateBooksGrossEarnings } from 'src/app/shared/models';
+import { BookModel, BookRequiredProps } from 'src/app/shared/models';
 import { BooksService } from 'src/app/shared/services';
 import { Store } from '@ngrx/store';
 import { BooksApiActions, BooksPageActions } from '../../actions/';
-import { State } from '../../../shared/state';
+import { selectActiveBook, selectAllBooks, selectBooksEarningsTotals, State } from '../../../shared/state';
+import { Observable } from 'rxjs';
 
 @Component({
   selector: "app-books",
@@ -11,11 +12,16 @@ import { State } from '../../../shared/state';
   styleUrls: ["./books-page.component.css"]
 })
 export class BooksPageComponent implements OnInit {
-  books: BookModel[] = [];
-  currentBook: BookModel | null = null;
-  total: number = 0;
+  books$: Observable<BookModel[]>; // All three could also be declared here and not in the constructor: books$ = store.select(selectAllBooks) (type is going to be inferred)
+  currentBook$: Observable<BookModel | null>;
+  total$: Observable<number>;
 
-  constructor(private booksService: BooksService, private store: Store<State>) {}
+  constructor(private booksService: BooksService, private store: Store<State>) {
+    // Functionally, there is no difference between declaring these here or in ngOnInit, except that by declaring them here you can avoid using the ngOnInit hook.
+    this.books$ = store.select(selectAllBooks);
+    this.currentBook$ = store.select(selectActiveBook);
+    this.total$ = store.select(selectBooksEarningsTotals);
+  }
 
   ngOnInit() {
     this.store.dispatch(BooksPageActions.enter());
@@ -26,18 +32,11 @@ export class BooksPageComponent implements OnInit {
   getBooks() {
     this.booksService.all().subscribe(books => {
       this.store.dispatch(BooksApiActions.booksLoaded({ books }));
-      this.books = books;
-      this.updateTotals(books);
     });
-  }
-
-  updateTotals(books: BookModel[]) {
-    this.total = calculateBooksGrossEarnings(books);
   }
 
   onSelect(book: BookModel) {
     this.store.dispatch(BooksPageActions.selectBook({bookId: book.id}))
-    this.currentBook = book;
   }
 
   onCancel() {
@@ -46,7 +45,6 @@ export class BooksPageComponent implements OnInit {
 
   removeSelectedBook() {
     this.store.dispatch(BooksPageActions.clearSelectedBook());
-    this.currentBook = null;
   }
 
   onSave(book: BookRequiredProps | BookModel) {
