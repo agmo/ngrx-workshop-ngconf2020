@@ -1,8 +1,9 @@
-import { createReducer, on } from '@ngrx/store';
+import { Action, createReducer, on } from '@ngrx/store';
 import { BookModel } from 'src/app/shared/models';
 import { BooksPageActions } from 'src/app/books/actions';
 
-const createBook = (books: BookModel[], book: BookModel) => [...books, book];
+// These methods modify the state in an immutable way:
+const createBook = (books: BookModel[], book: BookModel) => [...books, book]; // Inserts a book into the collection in an immutable way. Using push() would mutate the previous state.
 const updateBook = (books: BookModel[], changes: BookModel) =>
   books.map(book => {
     return book.id === changes.id ? Object.assign({}, book, changes) : book;
@@ -20,7 +21,7 @@ export const initialState: State = {
   activeBookId: null
 };
 
-export const booksReducer = createReducer(
+const booksReducer = createReducer(
   initialState,
   on(
     BooksPageActions.enter,
@@ -38,3 +39,8 @@ export const booksReducer = createReducer(
     };
   })
 );
+
+// An AOT-compatible wrapper function for non-Ivy versions of Angular:
+export function reducer(state: State | undefined, action: Action) {
+  return booksReducer(state, action);
+}
