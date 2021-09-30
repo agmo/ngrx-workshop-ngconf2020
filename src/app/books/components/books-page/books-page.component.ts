@@ -1,8 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { BookModel, BookRequiredProps } from 'src/app/shared/models';
-import { BooksService } from 'src/app/shared/services';
 import { Store } from '@ngrx/store';
-import { BooksApiActions, BooksPageActions } from '../../actions/';
+import { BooksPageActions } from '../../actions/';
 import { selectActiveBook, selectAllBooks, selectBooksEarningsTotals, State } from '../../../shared/state';
 import { Observable } from 'rxjs';
 
@@ -16,7 +15,7 @@ export class BooksPageComponent implements OnInit {
   currentBook$: Observable<BookModel | null>;
   total$: Observable<number>;
 
-  constructor(private booksService: BooksService, private store: Store<State>) {
+  constructor(private store: Store<State>) {
     // Functionally, there is no difference between declaring these here or in ngOnInit, except that by declaring them here you can avoid using the ngOnInit hook.
     this.books$ = store.select(selectAllBooks);
     this.currentBook$ = store.select(selectActiveBook);
@@ -50,25 +49,13 @@ export class BooksPageComponent implements OnInit {
 
   saveBook(bookProps: BookRequiredProps) {
     this.store.dispatch(BooksPageActions.createBook({book: bookProps}))
-    this.booksService.create(bookProps).subscribe(book => {
-      this.store.dispatch(BooksApiActions.bookCreated({ book }));
-      this.removeSelectedBook();
-    });
   }
 
   updateBook(book: BookModel) {
     this.store.dispatch(BooksPageActions.updateBook({bookId: book.id, changes: book}));
-    this.booksService.update(book.id, book).subscribe(book => {
-      this.store.dispatch(BooksApiActions.bookUpdated({ book }));
-      this.removeSelectedBook();
-    });
   }
 
   onDelete(book: BookModel) {
     this.store.dispatch(BooksPageActions.deleteBook({bookId: book.id}));
-    this.booksService.delete(book.id).subscribe(() => {
-      this.store.dispatch(BooksApiActions.bookDeleted({ bookId: book.id }));
-      this.removeSelectedBook();
-    });
   }
 }
