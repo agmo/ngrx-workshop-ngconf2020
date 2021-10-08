@@ -1,25 +1,20 @@
 import { Action, createReducer, createSelector, on } from '@ngrx/store';
+import { EntityState, createEntityAdapter } from '@ngrx/entity';
 import { BookModel, calculateBooksGrossEarnings } from 'src/app/shared/models';
 import { BooksPageActions, BooksApiActions } from 'src/app/books/actions';
 
-// These methods modify the state in an immutable way:
-const createBook = (books: BookModel[], book: BookModel) => [...books, book]; // Inserts a book into the collection in an immutable way. Using push() would mutate the previous state.
-const updateBook = (books: BookModel[], changes: BookModel) =>
-  books.map(book => {
-    return book.id === changes.id ? Object.assign({}, book, changes) : book;
-  });
-const deleteBook = (books: BookModel[], bookId: string) =>
-  books.filter(book => bookId !== book.id);
-
-export interface State {
-  collection: BookModel[];
+export interface State extends EntityState<BookModel>{
   activeBookId: string | null;
 }
 
-export const initialState: State = {
-  collection: [],
+// Out-of the box the entity adapter uses the "id" property. To specify a different key, e.g. "name",
+// pass in a config object:
+// { selectId: (model: BookModel) => model.name }
+const adapter = createEntityAdapter<BookModel>(); // Unsorted adapter. Use sortComparer on the config object to have items sorted as they're inserted.
+
+export const initialState: State = adapter.getInitialState({
   activeBookId: null
-};
+});
 
 const booksReducer = createReducer(
   initialState,
@@ -39,30 +34,22 @@ const booksReducer = createReducer(
     };
   }),
   on(BooksApiActions.booksLoaded, (state, action) => {
-    return {
-      ...state,
-      collection: action.books
-    };
+    return adapter.setAll(action.books, state);
   }),
   on(BooksApiActions.bookCreated, (state, action) => {
-    return {
+    return adapter.addOne(action.book, {
       ...state,
-      collection: createBook(state.collection, action.book),
       activeBookId: null
-    };
+    });
   }),
   on(BooksApiActions.bookUpdated, (state, action) => {
-    return {
+    return adapter.updateOne({id: action.book.id, changes: action.book}, {
       ...state,
-      collection: updateBook(state.collection, action.book),
       activeBookId: null
-    };
+    });
   }),
   on(BooksApiActions.bookDeleted, (state, action) => {
-    return {
-      ...state,
-      collection: deleteBook(state.collection, action.bookId)
-    };
+    return adapter.removeOne(action.bookId, state);
   })
 );
 
@@ -74,16 +61,16 @@ export function reducer(state: State | undefined, action: Action) {
 /**
  * "Getter" Selectors (simple selectors that just return a property on state)
  */
-export const selectAll = (state: State) => state.collection;
+export const { selectAll, selectEntities } = adapter.getSelectors();
 export const selectActiveBookId = (state: State) => state.activeBookId;
 
 /**
  * Complex Selectors (merge multiple - up to 8 - inputs into a result)
  */
 export const selectActiveBook = createSelector(
-  selectAll,
+  selectEntities,
   selectActiveBookId,
-  (books, activeBookId) => books.find(book => book.id === activeBookId) || null
+  (entities, activeBookId) => activeBookId ? entities[activeBookId] : null
 );
 
 const selectEarningsTotals_unoptimized = (state: State) => {

@@ -12,7 +12,7 @@ import { Observable } from 'rxjs';
 })
 export class BooksPageComponent implements OnInit {
   books$: Observable<BookModel[]>; // All three could also be declared here and not in the constructor: books$ = store.select(selectAllBooks) (type is going to be inferred)
-  currentBook$: Observable<BookModel | null>;
+  currentBook$: Observable<BookModel | null | undefined>;
   total$: Observable<number>;
 
   constructor(private store: Store<State>) {
